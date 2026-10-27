@@ -374,6 +374,9 @@ class _SpaceViewState extends State<SpaceView> {
         room?.getLocalizedDisplayname() ?? L10n.of(context).nothingFound;
     const avatarSize = Avatar.defaultSize / 1.5;
     final isAdmin = room?.canChangeStateEvent(EventTypes.SpaceChild) == true;
+    final sortedChildren = _discoveredChildren
+      .map((child) => (child, room?.spaceChildren.firstWhereOrNull((spaceChild) => spaceChild.roomId == child.roomId)?.order))
+      .sortedBy((pair) => pair.$2 == null ? '' : pair.$2!);
     return Scaffold(
       body: room == null
           ? const Center(child: Icon(Icons.search_outlined, size: 80))
@@ -467,9 +470,9 @@ class _SpaceViewState extends State<SpaceView> {
                       ),
                     ),
                     SliverList.builder(
-                      itemCount: _discoveredChildren.length + 1,
+                      itemCount: sortedChildren.length + 1,
                       itemBuilder: (context, i) {
-                        if (i == _discoveredChildren.length) {
+                        if (i == sortedChildren.length) {
                           if (_noMoreRooms) {
                             return const SizedBox.shrink();
                           }
@@ -486,7 +489,7 @@ class _SpaceViewState extends State<SpaceView> {
                             ),
                           );
                         }
-                        final item = _discoveredChildren[i];
+                        final item = sortedChildren[i].$1;
                         var joinedRoom = room.client.getRoomById(item.roomId);
                         final displayname =
                             item.name ??
