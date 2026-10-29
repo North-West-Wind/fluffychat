@@ -130,6 +130,19 @@ class _SpaceViewState extends State<SpaceView> {
           hierarchy.rooms.where((room) => room.roomId != widget.spaceId),
         );
         _isLoading = false;
+
+				// Sort rooms
+				final ordering = { for (final child in _discoveredChildren
+					.map((child) => room.spaceChildren.firstWhereOrNull((spaceChild) => spaceChild.roomId == child.roomId))
+					.where((child) => child?.roomId != null)) child!.roomId: child.order };
+        _discoveredChildren.sort((a, b) {
+          final orderA = ordering[a.roomId];
+          final orderB = ordering[b.roomId];
+          if (orderA != null && orderB != null) return orderA.compareTo(orderB);
+          if (orderA == null && orderB != null) return 1;
+          if (orderA != null && orderB == null) return -1;
+          return 0;
+        });
       });
 
       if (_nextBatch == null) {
@@ -374,9 +387,6 @@ class _SpaceViewState extends State<SpaceView> {
         room?.getLocalizedDisplayname() ?? L10n.of(context).nothingFound;
     const avatarSize = Avatar.defaultSize / 1.5;
     final isAdmin = room?.canChangeStateEvent(EventTypes.SpaceChild) == true;
-    final sortedChildren = _discoveredChildren
-      .map((child) => (child, room?.spaceChildren.firstWhereOrNull((spaceChild) => spaceChild.roomId == child.roomId)?.order))
-      .sortedBy((pair) => pair.$2 == null ? '' : pair.$2!);
     return Scaffold(
       body: room == null
           ? const Center(child: Icon(Icons.search_outlined, size: 80))
@@ -470,9 +480,9 @@ class _SpaceViewState extends State<SpaceView> {
                       ),
                     ),
                     SliverList.builder(
-                      itemCount: sortedChildren.length + 1,
+                      itemCount: _discoveredChildren.length + 1,
                       itemBuilder: (context, i) {
-                        if (i == sortedChildren.length) {
+                        if (i == _discoveredChildren.length) {
                           if (_noMoreRooms) {
                             return const SizedBox.shrink();
                           }
@@ -489,7 +499,7 @@ class _SpaceViewState extends State<SpaceView> {
                             ),
                           );
                         }
-                        final item = sortedChildren[i].$1;
+                        final item = _discoveredChildren[i];
                         var joinedRoom = room.client.getRoomById(item.roomId);
                         final displayname =
                             item.name ??
